@@ -12,7 +12,7 @@ using TestBlobStorage.Data;
 namespace TestBlobStorage.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20231009172604_mig1")]
+    [Migration("20231012185618_mig1")]
     partial class mig1
     {
         /// <inheritdoc />

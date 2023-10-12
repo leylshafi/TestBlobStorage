@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -8,6 +9,7 @@ using System.Security.Cryptography;
 using TestBlobStorage.Data;
 using TestBlobStorage.Models;
 using TestBlobStorage.Models.Dtos;
+using TestBlobStorage.Services;
 
 namespace TestBlobStorage.Controllers
 {
@@ -31,7 +33,7 @@ namespace TestBlobStorage.Controllers
                 new Claim(ClaimTypes.Role,nameof(User))
             };
 
-            var key = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(_configuration.GetSection("Token").Value));
+            var key = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(_configuration.GetSection("JWT:Secret").Value));
 
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
 
@@ -47,23 +49,49 @@ namespace TestBlobStorage.Controllers
         }
 
         [HttpPost("register")]
-        public async Task<ActionResult> RegisterAdmin(UserDto request)
+        public async Task<ActionResult> Register([FromBody]UserDto request)
         {
-            if (_context.Users.Any()) return Conflict("");
-            User user = new() { 
-                 Name=request.Name,
-                 Age = request.Age,
-                 Id = Guid.NewGuid(),
-                 Surname = request.Surname
-            };
-            CreatePasswordHash(request.Password, out byte[] passwordHash, out byte[] passwordSalt);
-            user.PasswordSalt = passwordSalt;
-            user.PasswordHash = passwordHash;
+            try
+            {
+                User user = new()
+                {
+                    Name = request.Name,
+                    Age = request.Age,
+                    Username= request.Username,
+                    Id = Guid.NewGuid(),
+                    Surname = request.Surname,
+                    ProfilePhoto = "Not set yet"
+                };
 
-            await _context.Users.AddAsync(user);
-            await _context.SaveChangesAsync();
+                CreatePasswordHash(request.Password, out byte[] passwordHash, out byte[] passwordSalt);
+                user.PasswordSalt = passwordSalt;
+                user.PasswordHash = passwordHash;
 
-            return Ok(user);
+                await _context.Users.AddAsync(user);
+                await _context.SaveChangesAsync();
+
+                return Ok(user);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                throw;
+            }
+            
+        }
+
+        [HttpPost("login")]
+        public async Task<ActionResult> Login(LoginDto request)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(e => e.Username == request.Username);
+
+            if (user is null) return NotFound($"{request.Username} does not exist");
+
+            if (!VerifyPassword(request.Password, user.PasswordHash, user.PasswordSalt)) return BadRequest("Password doesn't match Admin");
+
+            var token = CreateToken(user);
+
+            return Ok(token);
         }
 
         private void CreatePasswordHash(string password, out byte[] passwordHash, out byte[] passwordSalt)
