@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
+using TestBlobStorage.Data;
 using TestBlobStorage.Services;
 
 namespace TestBlobStorage.Controllers
@@ -10,10 +11,12 @@ namespace TestBlobStorage.Controllers
     public class FileController : ControllerBase
     {
         private readonly IStorageManager _storageManager;
+        private readonly AppDbContext _context;
 
-        public FileController(IStorageManager storageManager)
+        public FileController(IStorageManager storageManager, AppDbContext context)
         {
             _storageManager = storageManager;
+            _context = context;
         }
 
         [HttpGet("getUrl")]
@@ -107,7 +110,7 @@ namespace TestBlobStorage.Controllers
         }
 
         [HttpPost("upload")]
-        public IActionResult UploadFile(IFormFile file)
+        public IActionResult UploadFile(IFormFile file,string id)
         {
             if (file == null || file.Length == 0)
             {
@@ -125,9 +128,15 @@ namespace TestBlobStorage.Controllers
 
                     var result = _storageManager.UploadFile(stream, fileName, contentType);
 
-                    if (result)
+                    if (result is not null)
                     {
+                        var user = _context.Users.FirstOrDefault(i => i.Id.ToString() == id);
+                        user.ProfilePhoto = result;
+                        _context.Update(user);
+                        _context.SaveChanges();
+
                         return Ok("File uploaded successfully.");
+                        
                     }
                     else
                     {

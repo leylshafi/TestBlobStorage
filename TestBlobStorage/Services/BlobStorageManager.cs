@@ -65,7 +65,7 @@ namespace TestBlobStorage.Services
             return await Task.FromResult(signedUrl);
         }
 
-        public bool UploadFile(Stream stream, string fileName, string contentType)
+        public string UploadFile(Stream stream, string fileName, string contentType)
         {
             var serviceClient = new BlobServiceClient(_storageOptions.ConnectionString);
             var containerClient = serviceClient.GetBlobContainerClient(_storageOptions.ContainerName);
@@ -76,8 +76,9 @@ namespace TestBlobStorage.Services
                 HttpHeaders = new BlobHttpHeaders { ContentType = contentType }
             });
 
-            return true;
-        }
+
+            return blobClient.Uri.ToString();
+;        }
 
         public async Task<bool> UploadFileAsync(Stream stream, string fileName, string contentType)
         {
