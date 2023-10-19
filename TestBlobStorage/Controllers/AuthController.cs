@@ -17,10 +17,10 @@ namespace TestBlobStorage.Controllers
     [ApiController]
     public class AuthController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly CosmosDbContext _context;
         private readonly IConfiguration _configuration;
 
-        public AuthController(AppDbContext context, IConfiguration configuration)
+        public AuthController(CosmosDbContext context, IConfiguration configuration)
         {
             _context = context;
             _configuration = configuration;
@@ -74,6 +74,7 @@ namespace TestBlobStorage.Controllers
             }
             catch (Exception ex)
             {
+                Console.WriteLine(ex.InnerException.ToString());
                 Console.WriteLine(ex.Message);
                 throw;
             }

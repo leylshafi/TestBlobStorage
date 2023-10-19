@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using TestBlobStorage;
 using TestBlobStorage.Data;
+using TestBlobStorage.Models;
 using TestBlobStorage.Services;
 using TestBlobStorage.Utilities;
 
@@ -16,8 +18,13 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 {
     options.UseSqlServer(builder.Configuration.GetConnectionString("Default"));
 });
+builder.Services.AddSwagger();
+builder.Services.AddAuthenticationAndAuthorization(builder.Configuration);
+var cosmos = new CosmosConfig();
+builder.Configuration.GetSection("Cosmos").Bind(cosmos);
 
-builder.Services.AddTransient<IStorageManager, BlobStorageManager>();
+builder.Services.AddDbContext<CosmosDbContext>(op => op.UseCosmos(cosmos.Uri, cosmos.Key, cosmos.DatabaseName));
+builder.Services.AddStorageManaganer(builder.Configuration);
 builder.Services.Configure<BlobStorageOptions>(builder.Configuration.GetSection("BlobStorage"));
 
 
